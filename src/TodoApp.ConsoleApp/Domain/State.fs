@@ -6,13 +6,13 @@ open TodoApp.ConsoleApp.Domain.Events
 open TodoApp.ConsoleApp.Domain.Commands
 
 type Task = {
-    Id         : TaskId
+    Id         : int
     Name       : string
     DueDate    : DateTime option
     IsComplete : bool
 }
 
-type TaskState = { Tasks : Task list }
+type TasksBucket = { Tasks : Task list }
     with
     static member zeroState = { Tasks = [] }
     static member ApplyEvent state = function

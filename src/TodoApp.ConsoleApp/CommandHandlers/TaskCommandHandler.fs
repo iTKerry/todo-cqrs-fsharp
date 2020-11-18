@@ -1,11 +1,11 @@
 ﻿module TodoApp.ConsoleApp.CommandHandlers.TaskCommandHandler
 
+open TodoApp.ConsoleApp.Domain
 open TodoApp.ConsoleApp.Domain.Errors
 open TodoApp.ConsoleApp.Domain.State
 open TodoApp.ConsoleApp.Domain.Events
 open TodoApp.ConsoleApp.Domain.Commands
 open TodoApp.ConsoleApp.Domain.Aggregate
-
 
 let private ifTaskDoesNotAlreadyExist state id =    
     match state.Tasks |> List.tryFind (fun x -> x.Id = id) with    
@@ -40,9 +40,17 @@ let executeCommand state = function
         |> (ifTaskExists state >> Result.bind ifNotAlreadyFinished)
         |> Result.map (fun _ -> TaskDueDateChanged args)
 
-type TaskCommandHandler() =
-    let aggregate = { ZeroState = TaskState.zeroState
-                      Apply = TaskState.ApplyEvent
+type TaskCommandHandler(tasksRepo: TasksRepository) =
+    let aggregate = { ZeroState = TasksBucket.zeroState
+                      Apply = TasksBucket.ApplyEvent
                       Exec = executeCommand }
-    member x.Handle =
-        failwith "Not implemented exception!"
+    
+    let cmdExec = Aggregate.createHandler(aggregate, tasksRepo.Load, tasksRepo.Save)
+    
+    member x.Handle(command) =
+        try
+            match cmdExec(command) with
+            | Ok value -> printfn "%A" value
+            | Error msg -> printfn "%A" msg
+        with
+        | ex -> ex |> AppError.createResult |> (printfn "%A") 
